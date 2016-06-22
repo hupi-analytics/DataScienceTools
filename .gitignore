@@ -1,0 +1,5 @@
+**/target/**
+**/project/**
+**/.idea/**
+**/lib_managed/**
+**/checkpoint/**

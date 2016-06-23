@@ -21,6 +21,8 @@ import scala.math
 import math._
 import org.apache.commons.math3.distribution._
 
+// For input Data Frame, make sure that all of column is String to apply these functions
+
 package io.hupi.datascience_tools {
 
 	object Correlation {
@@ -120,7 +122,7 @@ package io.hupi.datascience_tools {
 		  //@param data = DataFrame that contains quantitative variables  
 		  //@param schemaData = Array[String] that contains quantitative variables names
 		  //@param variable = variable target
-		  //@param method = "pearson" / "spearman" 
+		  //@param method = "pearson" / "spearman"
 		  //@param test = "pearson" / "fisher"
 		  //@param alpha = error risk
 		  //@param numberOfVariables = number of variables
@@ -156,7 +158,7 @@ package io.hupi.datascience_tools {
 		  for (i <- 0 to (finalList.length - 1)) {
 			val degre = deg(i)
 			val variab = schemaData(v(i))
-			val signif = testSignificance(data, degre, alpha, method) 
+			val signif = testSignificance(data, degre, alpha, test) 
 			variables += variab
 			degree += degre
 			significance += signif

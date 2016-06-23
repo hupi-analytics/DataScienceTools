@@ -193,9 +193,9 @@ package io.hupi.datascience_tools {
 		  val words = stripAccents(input).toLowerCase().replaceAll("[^A-Za-z]+", " ").split(" ")
 		  val goodWords = new ListBuffer [String]()
 		  for (i <- 0 to (words.length - 1)) {
-			val w = neatWord(words(i))
-			val res = correctWord(w, secteur, sc)
-			goodWords += res
+		    val w = neatWord(words(i))
+		    val res = correctWord(w, secteur, sc)
+		    goodWords += res
 		  }
 		  val textPropre = goodWords.mkString(" ")
 		  return textPropre

@@ -122,14 +122,14 @@ package io.hupi.datascience_tools {
 		  //@param data = DataFrame that contains quantitative variables  
 		  //@param schemaData = Array[String] that contains quantitative variables names
 		  //@param variable = variable target
-		  //@param method = "pearson" / "fisher"
-		  //@param test = "pearson" / "spearman"
+		  //@param method = "pearson" / "spearman"
+		  //@param test = "pearson" / "fisher"
 		  //@param alpha = error risk
 		  //@param numberOfVariables = number of variables
 		  //@param direction = "negative" / "positive"
 		  //@param level = "most" / "less"
 
-		  val table = listCorrelation(data, schemaData, test)
+		  val table = listCorrelation(data, schemaData, method)
 
 		  val indexVariable = schemaData.indexOf(variable)
 		  val choix = table.groupBy(_._2._1).getOrElse(indexVariable, null).map(l => (l._1, l._2._2))
@@ -158,7 +158,7 @@ package io.hupi.datascience_tools {
 		  for (i <- 0 to (finalList.length - 1)) {
 			val degre = deg(i)
 			val variab = schemaData(v(i))
-			val signif = testSignificance(data, degre, alpha, method) 
+			val signif = testSignificance(data, degre, alpha, test) 
 			variables += variab
 			degree += degre
 			significance += signif

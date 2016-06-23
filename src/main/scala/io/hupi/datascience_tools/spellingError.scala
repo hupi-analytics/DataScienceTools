@@ -185,14 +185,17 @@ package io.hupi.datascience_tools {
 		}
 
 		// Fonction pour corriger un phrase
-		def correctSentence (input : String, secteur : String = "quotidien", sc:SparkContext) : String = {
-		  val dico = findDictionary(secteur, sc)
-		  val words = input.split(" ")
+		def correctSentence (input : String, secteur : String = "quotidien", sc: SparkContext) : String = {
+		  //@param input : String le phrase a corriger
+		  //@param secteur : String : pour choisir le dictionnaire, si on met rien, c'est "quotidien" pas défaut
+		  //@sc
+		  
+		  val words = stripAccents(input).toLowerCase().replaceAll("[^A-Za-z]+", " ").split(" ")
 		  val goodWords = new ListBuffer [String]()
 		  for (i <- 0 to (words.length - 1)) {
-			val w = neatWord(words(i))
-			val res = correctWord(w, secteur, sc)
-			goodWords += res
+		    val w = neatWord(words(i))
+		    val res = correctWord(w, secteur, sc)
+		    goodWords += res
 		  }
 		  val textPropre = goodWords.mkString(" ")
 		  return textPropre

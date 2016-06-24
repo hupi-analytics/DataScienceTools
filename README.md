@@ -5,11 +5,11 @@
 import io.hupi.datascience_tools._
 ```
 
-## Introduction :
+## Introduction
 In this folder, you will find some tools for outliers detection, discretisation, correlation analysis and text correction.
 
 
-## Description :
+## Description
 
 This package has (for the moment) 4 tools :
 

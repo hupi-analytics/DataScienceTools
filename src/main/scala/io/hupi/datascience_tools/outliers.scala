@@ -174,9 +174,10 @@ package io.hupi.datascience_tools {
 	def esd(variable : RDD[Double], nbOutliers : Int = 10, alpha : Double = 0.05) : List[Double] = {
 
 	  val N = variable.count
+	  val Ndistinct = variable.distinct.count
 	  // Settings control
-	  if ( (nbOutliers <= 0) || (nbOutliers >= N) ){
-		throw new Exception("\"nbOutliers\" needs to be strictly greater than 0 and strictly lower than " + N + ".\n")
+	  if ( (nbOutliers <= 0) || (nbOutliers >= Ndistinct) ){
+		throw new Exception("\"nbOutliers\" needs to be strictly greater than 0 and strictly lower than " + Ndistinct + " (distinct values number).\n")
 	  }
 	  if ( (alpha <= 0) || (alpha >= 1) ){
 		throw new Exception("\"alpha\" needs to be strictly greater than 0 and strictly lower than 1.\n")

@@ -1,0 +1,106 @@
+// Chargement de la base vehicule
+import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql._
+import sqlContext.implicits._
+import org.joda.time._ 
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.types._
+import scala.collection.mutable.ListBuffer
+
+package io.hupi.recommandation {
+
+	object itemRecommandation {
+	
+		val sqlContext = new SQLContext(sc)
+			
+		val vehicule = sc.textFile("hdfs://wikicampers.node1.pro.hupi.loc:8020/user/wikicampers/data_source/vehicule/*")
+
+		val schemaString = "id prix_jour type kilometrage carburant nb_couchage date_pmc departement date_debut date_fin est_dispo"
+
+
+
+		val schema = 
+		  StructType(
+			  schemaString.split(" ").map(fieldName => StructField(fieldName, StringType, true)))
+
+		val rowRDD = vehicule.map(_.split("\t")).map(p => Row(p(0), p(1), p(2), p(3), p(4), p(5), p(6), p(8), p(9), p(10), p(11)))
+
+		val vehiDF = sqlContext.createDataFrame(rowRDD, schema)
+
+		vehiDF.registerTempTable("vehicule")
+		
+		// Fonction qui convertit une string en Date Format puis en miliseconds
+		def dateToMillisec (input : String) : Long = {
+		  val date = new java.text.SimpleDateFormat("yyyy-MM-dd").parse(input).getTime()
+		  return date
+		}
+		//sqlContext.udf.register("dateToMillisec", dateToMillisec _)
+
+		// Fonction qui convertit les types de véhicules en chiffre
+		def vehToNumber (v : String) : String = {
+		  if (v == "Van") {return "1"} 
+		  else if (v == "Integral") {return "2"}
+		  else if (v == "Profile") {return "3"}
+		  else if (v == "Combi") {return "4"}
+		  else if (v == "Capucine") {return "5"}
+		  else {return "6"}
+		}
+		sqlContext.udf.register("vehToNumber", vehToNumber _)
+		
+		val base = sqlContext.sql("""
+		  SELECT id, prix_jour, kilometrage, carburant, nb_couchage, 
+			substring(date_pmc, 1, 10), substring(date_debut, 1, 10),
+			substring(date_fin, 1, 10), vehToNumber(type), departement
+		  FROM vehicule
+		  WHERE est_dispo = 1
+		""").map(l => (l(0).asInstanceOf[String], l(1).asInstanceOf[String], l(2).asInstanceOf[String], 
+					   l(3).asInstanceOf[String], l(4).asInstanceOf[String], l(5).asInstanceOf[String], 
+					   l(6).asInstanceOf[String], l(7).asInstanceOf[String], l(8).asInstanceOf[String], l(9).asInstanceOf[String]))
+			.filter(l => l._5 != "").filter(l => l._6 != "").filter(l => l._7 != "")
+			.filter(l => l._1 != "").filter(l => l._2 != "").filter(l => l._3 != "")
+			.filter(l => l._4 != "").filter(l => l._8 != "").filter(l => l._9 != "").filter(l => l._10 != "")
+			.map(l => ((l._1.toDouble, dateToMillisec(l._7).toDouble, dateToMillisec(l._8).toDouble), (l._2.toDouble, l._3.toDouble, 
+						l._4.toDouble, l._5.toDouble, dateToMillisec(l._6).toDouble, dateToMillisec(l._7).toDouble, 
+						dateToMillisec(l._8).toDouble, l._9.toDouble, l._10.toDouble)))
+			.sortByKey()
+			.groupByKey()
+			.map(l => l._2.toList.last)
+			.map(l => Array(l._1, l._2, l._3, l._4, l._5, l._6, l._7, l._8, l._9)).cache()
+		
+		// Fonction qui calcule la similarité de cosinus
+		object CosineSimilarity { 
+		  def dotProduct(x: Array[Double], y: Array[Double]): Double = {
+			(for((a, b) <- x zip y) yield a * b) sum
+		  }
+		  def magnitude(x: Array[Double]): Double = {
+			math.sqrt(x map(i => i*i) sum)
+		  }
+		  def cosineSimilarity(x: Array[Double], y: Array[Double]): Double = {
+			require(x.size == y.size)
+			dotProduct(x, y)/(magnitude(x) * magnitude(y))
+		  }
+		}
+		
+		val nbVehicule = base.count().toInt
+		val veh1 = sc.parallelize(List.range(0, 10))
+		val veh2 = sc.parallelize(List.range(0, 10))
+		val vehCouples = veh1.cartesian(veh2)
+		
+		val nbCouple = vehCouples.count().toInt
+		val base1 = base.collect()
+		
+		val vectorSim = new ListBuffer[Double]()
+
+		for (i <- 0 to nbCouple-1){
+		  val v1 = vehCouples.map(l => l._1).collect()(i)
+		  val v2 = vehCouples.map(l => l._2).collect()(i)
+		  val x = base1(v1)
+		  val y = base1(v2)
+		  val sim = CosineSimilarity.cosineSimilarity(x, y)
+		  vectorSim += sim
+		}
+
+		val l = sc.parallelize(vectorSim.toList).cache()
+	}
+}

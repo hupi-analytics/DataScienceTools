@@ -1,0 +1,52 @@
+
+// Package
+import io.hupi.datascience_tools._
+
+
+// Loading the sunspots dataset
+val path="hdfs://hupi.node1.pro.hupi.loc/user/anthony.laffond/DataSet/"
+val sunspots_txt = sc.textFile( path + "Data_sunspots.txt")
+val sunspots = sunspots_txt.map( l => l.split(",") ).map( l => l(1).toDouble ).persist()
+val size_data = sunspots.count()
+sunspots.take(5)
+
+
+// Outliers
+val my_outliers = Outliers.detection_test ( variable = sunspots, method = "esd", alpha = 0.05, nbOutliers = 10 )
+
+val my_outliers_rdd = sc.parallelize(my_outliers)
+val without_outliers = Outliers.replace( variable = sunspots, outliers = my_outliers_rdd, replace = "quartile" )
+sunspots.max 
+without_outliers.max
+
+
+// Discretisation
+val discretize_data = Discretisation.apply_on (
+  variable = sunspots, method = "quantile", nbClasse = Some(5), direction = "right",
+  labelsNames = List("Très peu","peu","moyen","beaucoup","énormément") 
+  )
+discretize_data.take(20)
+
+
+// Loading the redwine dataset
+import sqlContext.implicits._
+import org.apache.spark.sql.SQLContext
+val sqlContext = new SQLContext(sc) 
+val redwine = sc.textFile("hdfs://hupi.node1.pro.hupi.loc:8020/user/helene.nguyen/OutilCorrelation/redwine.csv")
+  .map( l => l.split(";") ).map( p => (p(0), p(1), p(2), p(3), p(4), p(5), p(6), p(7), p(8), p(9), p(10)) ).toDF()
+val schemaData = "fixed_acidity volatile_acidity citric_acid residual_sugar chlorides free_sulfur_dioxide total_sulfur_dioxide density pH sulphates alcohol".split(" ")
+
+
+// Correlation
+Correlation.findBestCor( data = redwine, schemaData = schemaData, method = "pearson", 
+ test =  "fisher", alpha = 0.05, numberOfCouples = 5, direction = "positive", level = "most" )
+
+
+// Text correction
+val texte = "Nous soummes des speciallistes du big-data."
+val correct = SpellingError.correctSentence (input = texte, secteur = "quotidien", sc)
+
+
+
+
+
